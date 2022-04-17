@@ -73,6 +73,10 @@ func (m *manager) DeleteUser(i string) error{
 	// 		   return nil
 	// 	}
 	// 	 return &domain.Error{Code:404,Message:"User doesn't exist"}
+	_,err:=m.ds.ViewUser(i)
+	if err != nil{
+		return &domain.Error{Code:404,Message:"User doesn't exist"}
+	}
 	if err := m.ds.DeleteUser(fmt.Sprint(i)); err != nil{
 		return &domain.Error{Code:404,Message:"User doesn't exist"}
 	}
