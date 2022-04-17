@@ -124,7 +124,7 @@ func (c *client) DeleteUser(id string) error{
 	// if len(resultArray) == 0{
 	// 	return &domain.Error{Code:404,Message:"User doesn't exist"}
 	// }
-	c.dbc.Collection("users").DeleteOne(ctx, bson.M{"_id": id})
+	c.dbc.Collection("users").DeleteOne(context.Background(), bson.M{"_id": id})
     return nil
 }
 
