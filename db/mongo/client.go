@@ -107,23 +107,23 @@ func (c *client) ListUsers(queryName *string,queryLimit *int32) ([]*domain.User,
 }
 func (c *client) DeleteUser(id string) error{
 	//Delete 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 	
-	cur, err := c.dbc.Collection("users").Find(ctx, bson.M{"_id" : id})
-	if err != nil { log.Fatal(err) }
-	defer cur.Close(ctx)
-	resultArray:=[]*domain.User{}
-	for cur.Next(ctx) {
-		// var result bson.D
-		var result1 *domain.User	
-		err := cur.Decode(&result1)
-		if err != nil { log.Fatal(err) }
-		resultArray=append(resultArray,result1)
-	}
-	if len(resultArray) == 0{
-		return &domain.Error{Code:404,Message:"User doesn't exist"}
-	}
+	// cur, err := c.dbc.Collection("users").Find(ctx, bson.M{"_id" : id})
+	// if err != nil { log.Fatal(err) }
+	// defer cur.Close(ctx)
+	// resultArray:=[]*domain.User{}
+	// for cur.Next(ctx) {
+	// 	// var result bson.D
+	// 	var result1 *domain.User	
+	// 	err := cur.Decode(&result1)
+	// 	if err != nil { log.Fatal(err) }
+	// 	resultArray=append(resultArray,result1)
+	// }
+	// if len(resultArray) == 0{
+	// 	return &domain.Error{Code:404,Message:"User doesn't exist"}
+	// }
 	c.dbc.Collection("users").DeleteOne(ctx, bson.M{"_id": id})
     return nil
 }
