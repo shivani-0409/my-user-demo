@@ -11,7 +11,8 @@ import(
     "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/bson"
-	// "go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"regexp"
 )
 func init(){
 	db.RegisterDataStore("mongo",NewClient)
@@ -24,7 +25,6 @@ func NewClient() (db.DataStore,error){
 		fmt.Println("The error is",err)
 		return nil,err
 	}
-	
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	err = client1.Ping(ctx, readpref.Primary())
@@ -43,8 +43,6 @@ func (c *client) AddUser(user *domain.User) (string, error){
 	collection := c.dbc.Collection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	//Insert
-	
 	_,err:=collection.InsertOne(ctx,bson.D{
 		{Key:"_id",Value:user.ID},
 		{Key:"name", Value:user.Name},
@@ -54,107 +52,57 @@ func (c *client) AddUser(user *domain.User) (string, error){
 	if err != nil{
 		fmt.Println("The error is",err)
 	}
-
-	//id := res.InsertedID
-	//stringObjectID := id.(primitive.ObjectID).Hex()
-	//fmt.Println("The ID is",id)
 	return user.ID,nil
 }
-func (c *client) ListUsers(queryName *string,queryLimit *int32) ([]*domain.User,error){
-	//Find
-	collection := c.dbc.Collection("users")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+func (c *client) ListUsers(filters map[string]interface{},limit int64) ([]*domain.User,error){
 	var (
 		cur *mongo.Cursor
 		err error
 	)
-	cur, err = collection.Find(ctx,bson.D{})
-	
-	if queryLimit !=nil{
-		if *queryLimit != 0{
-			if queryName != nil{
-				if *queryName != ""{
-					options := options.Find()
-					options.SetLimit(int64(*queryLimit))
-					// cur, err = collection.Find(ctx,bson.D{},options)
-					cur, err = collection.Find(ctx,bson.M{"name" : *queryName},options)
-					fmt.Println("The name query is",*queryName)
-				}
-			} else{
-					options := options.Find()
-					options.SetLimit(int64(*queryLimit))
-					cur, err = collection.Find(ctx,bson.D{},options)
-			}
-		}
-	}
-	if err != nil { log.Fatal(err) }
-	defer cur.Close(ctx)
+	options := options.Find().SetLimit(limit)
+	cur, err = c.dbc.Collection("users").Find(context.Background(),applyFilter(filters),options)
+    if err != nil {
+        return nil, err
+     }
 	resultArray:=[]*domain.User{}
-	for cur.Next(ctx) {
-		var result bson.D
+	for cur.Next(context.Background()) {
 		var result1 *domain.User	
 		err := cur.Decode(&result1)
 		if err != nil { log.Fatal(err) }
 		resultArray=append(resultArray,result1)
-		fmt.Println("The result is",result)
 	}
 	if err := cur.Err(); err != nil {
 		log.Fatal(err)
+		return nil, err
 	}
-	fmt.Println("The final result(List User) is",resultArray)
 	return resultArray,nil
 }
 func (c *client) DeleteUser(id string) error{
-	//Delete 
-	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// defer cancel()
-	
-	// cur, err := c.dbc.Collection("users").Find(ctx, bson.M{"_id" : id})
-	// if err != nil { log.Fatal(err) }
-	// defer cur.Close(ctx)
-	// resultArray:=[]*domain.User{}
-	// for cur.Next(ctx) {
-	// 	// var result bson.D
-	// 	var result1 *domain.User	
-	// 	err := cur.Decode(&result1)
-	// 	if err != nil { log.Fatal(err) }
-	// 	resultArray=append(resultArray,result1)
-	// }
-	// if len(resultArray) == 0{
-	// 	return &domain.Error{Code:404,Message:"User doesn't exist"}
-	// }
 	c.dbc.Collection("users").DeleteOne(context.Background(), bson.M{"_id": id})
     return nil
 }
 
 func (c *client) ViewUser(id string) (*domain.User,error){
-	//View User 
-	// collection := c.dbc.Collection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	//objID, err := primitive.ObjectIDFromHex(id)
-	// if err != nil {
-	// 	return nil,err
-	//   }
 	var userInfo domain.User
 	if err := c.dbc.Collection("users").FindOne(ctx, bson.M{"_id" : id}).Decode(&userInfo); err !=nil{
 		return nil,&domain.Error{Code:404,Message:"User doesn't exist"}
 	}
-	
-	// if err != nil { log.Fatal(err) }
-	// defer cur.Close(ctx)
-	// resultArray:=*domain.User
-	// for cur.Next(ctx) {
-	// 	var result bson.D
-	// 	var result1 *domain.User	
-	// 	err := cur.Decode(&result1)
-	// 	if err != nil { log.Fatal(err) }
-	// 	resultArray=append(resultArray,result1)
-	// 	fmt.Println("The viewed result is",result)
-	// }
-	// if err := cur.Err(); err != nil {
-	// 	log.Fatal(err)
-	// }
 	return &userInfo,nil
+}
+
+func applyFilter(filterMap map[string]interface{}) map[string]interface{} {
+    for k, v := range filterMap {
+        switch mval := v.(type) {
+        case []string:
+            filterMap[k] = bson.M{"$in": mval}
+        case string:
+            // support searching by name using case-insensitive matching
+            if k == "name" {
+                filterMap[k] = bson.M{"$regex": primitive.Regex{Pattern: "^" + regexp.QuoteMeta(mval) + "$", Options: "i"}}
+            }
+        }
+    }
+    return filterMap
 }

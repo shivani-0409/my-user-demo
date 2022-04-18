@@ -1,6 +1,5 @@
 package handlers
 import (
-	// "fmt"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-swagger/go-swagger/examples/ShivaniCustomServerExample1/gen/restapi/operations/users"
 	"github.com/go-swagger/go-swagger/examples/ShivaniCustomServerExample1/domain"
@@ -17,7 +16,6 @@ func (d *viewUser) Handle(vu users.ViewUserParams) middleware.Responder{
 	us,err :=d.rt.GetManager().ViewUser(vu.ID)
 	if err != nil{
 		derr,ok:=err.(domain.Err)
-		
 		if ok {
 			switch derr.StatusCode(){
 				case 404:

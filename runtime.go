@@ -1,6 +1,5 @@
 package ShivaniCustomServerExample1
 import(
-	// "fmt"
 	"github.com/go-swagger/go-swagger/examples/ShivaniCustomServerExample1/service"
 )
 
@@ -33,4 +32,5 @@ func (rt *Runtime) SetApplicationName(s string){
 func (rt *Runtime)GetManager() service.Manager{
 	return rt.svc
 }
+
 
