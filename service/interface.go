@@ -14,10 +14,10 @@ import(
 	// // "go.mongodb.org/mongo-driver/bson/primitive"
 )
 type Manager interface{
-	CreateUser(*domain.User) (string,error)
-	ListUsers(*string,*int32) ([]*domain.User,error)
-	DeleteUser(string) error
-	ViewUser(string) (*domain.User,error)
+	CreateUser(user *domain.User) (string,error)
+	ListUsers(mapNames map[string]interface{},limit int64) ([]*domain.User,error)
+	DeleteUser(id string) error
+	ViewUser(id string) (*domain.User,error)
 }
 
 func NewManager(dbType string) Manager{
